@@ -28,11 +28,8 @@ public class NathanOpMode extends LinearOpMode {
     double targetFlywheelVel = 1240;
     double oldFlywheelDist = 0;
     double oldTime = 0;
-    double oldFlywheelVel;
-    double ballsShot;
-    double artifact = 0;
+    double artifact = 4;
     boolean isIntakeRunning = true;
-    double oldintake = 0;
     boolean lastB = false;
     boolean lastC = false;
     boolean angleSnapping = false;
@@ -40,7 +37,7 @@ public class NathanOpMode extends LinearOpMode {
     boolean intakeIsOn;
 
     double f_integralSum;
-    public static double f_kD = 0.02, f_kI = 0, f_kP = 0.04;
+    public static double f_kD = 0.08, f_kI = 0, f_kP = 0.009;
 
     double frontLeftPower;
     double frontRightPower;
@@ -177,17 +174,17 @@ public class NathanOpMode extends LinearOpMode {
             lastC = gamepad1.x;
 
             if (angleSnapping) {
-                    if (0 - Degrees >= 5 && 0 - Degrees <= 5 && rotCheck != 0) {
-                    yaw = (0 - Degrees) / 10;
+                    if (AngleUnit.normalizeDegrees(0 - Degrees) >= 5 && AngleUnit.normalizeDegrees(0 - Degrees) <= 5 && rotCheck == 0) {
+                    yaw = 0 - Degrees;
                 }
-                else if (90 - Degrees >= 5 && 90 - Degrees <= 5 && rotCheck != 0) {
-                    yaw = (90 - Degrees) / 10;
+                else if (AngleUnit.normalizeDegrees(90 - Degrees) >= 5 && AngleUnit.normalizeDegrees(90 - Degrees) <= 5 && rotCheck == 0) {
+                    yaw = 90 - Degrees;
                 }
-                else if (-90 - Degrees >= 5 && -90 - Degrees <= 5 && rotCheck != 0) {
-                    yaw = (-90 - Degrees) / 10;
+                else if (AngleUnit.normalizeDegrees(-90 - Degrees) >= 5 && AngleUnit.normalizeDegrees(-90 - Degrees) <= 5 && rotCheck == 0) {
+                    yaw = -90 - Degrees;
                 }
-                else if (180 - Degrees >= 5 && 180 - Degrees <= 5 && rotCheck != 0) {
-                    yaw = (180 - Degrees) / 10;
+                else if (AngleUnit.normalizeDegrees(180 - Degrees) >= 5 && AngleUnit.normalizeDegrees(180 - Degrees) <= 5 && rotCheck == 0) {
+                    yaw = 180 - Degrees;
                 }
             telemetry.addLine("Angle snapping: On");
             }
@@ -242,7 +239,7 @@ public class NathanOpMode extends LinearOpMode {
 
                 flywheel.setPower(pid(f_kP, f_kI, f_kD, oldFlywheelDist, oldTime, targetFlywheelVel - flywheelVel, runtime.milliseconds()));
 
-                if (targetFlywheelVel - flywheelVel >= -100 && targetFlywheelVel - flywheelVel <= 100) {
+                if (targetFlywheelVel - flywheelVel >= -80 && targetFlywheelVel - flywheelVel <= 10) {
                     windmill.setPower(1);
                 }
                 else {
@@ -250,21 +247,12 @@ public class NathanOpMode extends LinearOpMode {
                 }
             }
             else {
-                flywheel.setVelocity(targetFlywheelVel);
-                ballsShot = 0;
+                flywheel.setVelocity(0);
                 windmill.setPower(0);
-            }
-
-            if ((flywheelVel - oldFlywheelVel) / (runtime.milliseconds() - oldTime) < -5) {
-                ballsShot += 1;
-            }
-            if (ballsShot >= artifact) {
-                isShooting = false;
             }
 
             oldTime = runtime.milliseconds();
             oldFlywheelDist = targetFlywheelVel - flywheelVel;
-            oldFlywheelVel = flywheelVel;
 
 
             //-------------------------------intake--------------------------------
@@ -285,18 +273,6 @@ public class NathanOpMode extends LinearOpMode {
                 right_intake_servo.setPower(0);
                 intake.setPower(0);
             }
-            double intakeVel = intake.getVelocity();
-
-            if ((intakeVel - oldintake) / (runtime.milliseconds() - oldTime) <= 0) {
-                artifact += 1;
-            }
-            else if (isShooting) {
-                artifact = 0;
-            }
-
-            isIntakeRunning = !(artifact >= 4);
-
-            oldintake = intakeVel;
 
 
             //---------------------telemetry--------------------

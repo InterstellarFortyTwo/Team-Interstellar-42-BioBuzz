@@ -16,7 +16,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@Autonomous(name ="Auto Example", group = "examples")
+@Autonomous(name ="NathanAuto", group = "examples")
 public class NathanAuto extends LinearOpMode {
     // I state my variables up here so they are within the scope of all my methods
     DcMotor frontleft;
@@ -30,11 +30,23 @@ public class NathanAuto extends LinearOpMode {
     CRServo right_intake_servo;
     IMU imu;
     double heading;
-    double yaw;
+    double yaw = 0;
+    double axial = 0;
+    double lateral = 0;
     boolean shooting = false;
+    boolean isMoving = false;
+    double frontLeftPower = 0;
+    double frontRightPower = 0;
+    double backLeftPower = 0;
+    double backRightPower = 0;
     // Creates new time variables
+    double f_integralSum;
+    public static double f_kD = 0.08, f_kI = 0, f_kP = 0.009;
+    double oldflywheelDist = 0;
+    double oldtime = 0;
     ElapsedTime runtime = new ElapsedTime();
     ElapsedTime shooterTimer = new ElapsedTime();
+    ElapsedTime movetime = new ElapsedTime();
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -46,6 +58,7 @@ public class NathanAuto extends LinearOpMode {
         intake = hardwareMap.get(DcMotor.class, "intake");
         flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
         flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         windmill = hardwareMap.get(CRServo.class, "windmill");
         right_intake_servo = hardwareMap.get(CRServo.class, "rightServo");
         left_intake_servo = hardwareMap.get(CRServo.class, "leftServo");
@@ -69,90 +82,100 @@ public class NathanAuto extends LinearOpMode {
         imu.resetYaw();
         waitForStart();
 
+        shoot(1180, 2000);
+        sleep(100);
+        move(1,-1,0,0.1,2,1);
+        sleep(100);
+        move(-1,-1,45,0.1,2,1);
+        intake(2000);
+        sleep(100);
+        move(10,1,0,0.1,3,1);
+        sleep(100);
+        move(5,1,-90,1,2,1);
+        sleep(100);
 
         telemetry.addData("Runtime: ", runtime);
     }
-    public void move(double y, double x, double targetAngle, double rotateSpeed, long time, double power) throws InterruptedException {
+    public void move(double y, double x, double targetAngle, double rotateSpeed, double time, double power) throws InterruptedException {
 
-        //The power changes the move speed of the robot so the time it takes for the robot to move is also increased
+        isMoving = true;
+        movetime.reset();
+
         time *= (1/power);
 
-        heading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-        double Degrees = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        /*
-        I'm using field centric drive to allow more movements while making it fairly simple.
-        This allows us to turn while we are moving.
-         */
-        double axial = y * cos(-heading) - x * sin(-heading);
-        double lateral = y * sin(-heading) + x * cos(-heading);
+        while (isMoving) {
 
-        double error = targetAngle - Degrees;
-        if (targetAngle != 0) {
+            heading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+            double Degrees = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+
+            axial = y * cos(-heading) - x * sin(-heading);
+            lateral = y * sin(-heading) + x * cos(-heading);
+
+            double error = AngleUnit.normalizeDegrees(targetAngle - Degrees);
             if (Degrees != targetAngle) {
-                yaw = rotateSpeed * error / targetAngle;
-            }
-            else {
+                yaw = rotateSpeed * error / 90;
+            } else {
                 yaw = 0;
             }
-        }
-        else {
-            yaw = error / 90;
-        }
+
         /*
         This is where I state all the variables for movement in an array like pattern for mechanum wheels.
         Remember the forward and sideways movement are not controlled directly from the variables that can be
         stated in the method, but in the field centric math.
          */
-        double frontLeftPower = (axial - lateral + yaw) * power;
-        double frontRightPower = (axial + lateral - yaw) * power;
-        double backLeftPower = (axial + lateral + yaw) * power;
-        double backRightPower = (axial - lateral - yaw) * power;
+            frontLeftPower = (axial - lateral + yaw) * power;
+            frontRightPower = (axial + lateral - yaw) * power;
+            backLeftPower = (axial + lateral + yaw) * power;
+            backRightPower = (axial - lateral - yaw) * power;
 
-        //Makes sure power does not exceed 1 or -1
-        double max;
-        max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
-        max = Math.max(max, Math.abs(backLeftPower));
-        max = Math.max(max, Math.abs(backRightPower));
 
-        if (max > 1.0) {
-            frontLeftPower /= max;
-            frontRightPower /= max;
-            backLeftPower /= max;
-            backRightPower /= max;
-        }
+            //Makes sure power does not exceed 1 or -1
+            double max;
+            max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
+            max = Math.max(max, Math.abs(backLeftPower));
+            max = Math.max(max, Math.abs(backRightPower));
 
-        frontleft.setPower(frontLeftPower);
-        frontright.setPower(frontRightPower);
-        backleft.setPower(backLeftPower);
-        backright.setPower(backRightPower);
+            if (max > 1.0) {
+                frontLeftPower /= max;
+                frontRightPower /= max;
+                backLeftPower /= max;
+                backRightPower /= max;
+            }
 
-        //Makes the wheels brake only when all motors have zero power
-        if (frontRightPower == 0) {
-            if (frontLeftPower == 0) {
-                if (backRightPower == 0) {
-                    if (backLeftPower == 0) {
-                        frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            frontleft.setPower(frontLeftPower);
+            frontright.setPower(frontRightPower);
+            backleft.setPower(backLeftPower);
+            backright.setPower(backRightPower);
+
+            //Makes the wheels brake only when all motors have zero power
+            if (frontRightPower == 0) {
+                if (frontLeftPower == 0) {
+                    if (backRightPower == 0) {
+                        if (backLeftPower == 0) {
+                            frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                            frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                            backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                            backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                        }
                     }
                 }
+            } else {
+                frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
             }
-        }
-        else {
-            frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        }
 
-        //tells the robot how long to move
-        sleep((long) time);
-
-        frontleft.setPower(0);
-        frontright.setPower(0);
-        backleft.setPower(0);
-        backright.setPower(0);
+            if(movetime.seconds() > time) {
+                isMoving = false;
+                frontleft.setPower(0);
+                frontright.setPower(0);
+                backleft.setPower(0);
+                backright.setPower(0);
+            }
+            sleep(1);
+        }
     }
     public void intake(double time) {
         //sets power to motors for a given amount of time
@@ -166,49 +189,50 @@ public class NathanAuto extends LinearOpMode {
         right_intake_servo.setPower(0);
         left_intake_servo.setPower(0);
     }
-    public void shoot(double targetVel) {
+    public void shoot(double targetVel, double time) {
 
         shooting = true;
         shooterTimer.reset();
 
         double currentVel = flywheel.getVelocity();
-        double flywheelPower = 0;
 
         while (shooting) {
 
-            flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            flywheel.setPower(pid(f_kP, f_kI, f_kD, oldflywheelDist, oldtime, targetVel - currentVel, runtime.milliseconds()));
 
-            if (currentVel < targetVel) {
-                if (currentVel > (targetVel / 2)) {
-                    double normalVel = currentVel / targetVel;
-                    flywheelPower = 1 - (2 * (normalVel - 0.5));
-                    if (flywheelPower < 0) {
-                        flywheelPower = 0;
-                    }
-                }
-                else {
-                    flywheelPower = 1;
-                }
-            }
-            else {
-                flywheelPower = 0;
-            }
-            flywheel.setPower(flywheelPower);
-
-            if (targetVel - currentVel >= -50 && targetVel - currentVel <= 50) {
+            if (targetVel - currentVel >= -80 && targetVel - currentVel <= 10) {
                 windmill.setPower(1);
             }
             else {
                 windmill.setPower(0);
             }
 
-            sleep(5000);
+            oldtime = runtime.milliseconds();
+            oldflywheelDist = targetVel - currentVel;
 
-            shooting = false;
+            if(shooterTimer.seconds() > time) {
+                shooting = false;
+                flywheel.setPower(0);
+                windmill.setPower(0);
+            }
+            sleep(1);
         }
-        flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    }
+    public double pid(double proportion, double integral, double dampening, double distOld, double tOld, double distNew, double tNew){
 
+        double p = distNew * proportion;
+
+        double i = 0;
+
+        f_integralSum += (tNew-tOld)*((distOld+distNew)/2);
+        i = f_integralSum * integral;
+
+        double vel = (distNew - distOld)/(tNew - tOld);
+        double d = -vel * dampening;
+
+        return p + i + d;
     }
 }
+
 
 
