@@ -28,7 +28,6 @@ public class NathanOpMode extends LinearOpMode {
     double targetFlywheelVel = 1240;
     double oldFlywheelDist = 0;
     double oldTime = 0;
-    double artifact = 4;
     boolean isIntakeRunning = true;
     boolean lastB = false;
     boolean lastC = false;
@@ -258,6 +257,7 @@ public class NathanOpMode extends LinearOpMode {
             //-------------------------------intake--------------------------------
 
 
+            telemetry.addLine("Press 'B' to power intake");
             if (gamepad1.b && !lastD && isIntakeRunning) {
             intakeIsOn = !intakeIsOn;
             }
@@ -280,7 +280,6 @@ public class NathanOpMode extends LinearOpMode {
             telemetry.addData("Current rotation: ", Degrees);
             telemetry.addData("Target flywheel velocity: ", targetFlywheelVel);
             telemetry.addData("Current flywheel velocity: ", flywheelVel);
-            telemetry.addData("Current amount of balls: ", artifact);
             telemetry.addData("Run time", runtime);
             telemetry.update();
         }
