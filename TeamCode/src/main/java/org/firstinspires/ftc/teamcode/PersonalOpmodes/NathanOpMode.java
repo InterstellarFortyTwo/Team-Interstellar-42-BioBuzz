@@ -90,17 +90,12 @@ public class NathanOpMode extends LinearOpMode {
         right_intake_servo.setDirection(DcMotorSimple.Direction.FORWARD);
         left_intake_servo.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        if (frontRightPower == 0) {
-            if (frontLeftPower == 0) {
-                if (backRightPower == 0) {
-                    if (backLeftPower == 0) {
-                        frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                    }
-                }
-            }
+        if (frontRightPower == 0 && frontLeftPower == 0 && backLeftPower == 0 && backRightPower == 0) {
+
+            frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
         else {
             frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -190,7 +185,6 @@ public class NathanOpMode extends LinearOpMode {
                 telemetry.addLine("Angle snapping: Off");
             }
 
-
             frontRightPower = (axial + yaw + lateral) * moveSpeed;
             frontLeftPower = (axial - yaw - lateral) * moveSpeed;
             backRightPower = (axial + yaw - lateral) * moveSpeed;
@@ -208,10 +202,21 @@ public class NathanOpMode extends LinearOpMode {
                 backRightPower /= max;
             }
 
+            if (Math.abs(gamepad1.left_stick_x) < 0.05
+                    && Math.abs(gamepad1.left_stick_y) < 0.05
+                    && Math.abs(gamepad1.right_stick_x) < 0.05) {
+
+                frontleft.setPower(0);
+                frontright.setPower(0);
+                backleft.setPower(0);
+                backright.setPower(0);
+            }
+            else {
             frontleft.setPower(frontLeftPower);
             frontright.setPower(frontRightPower);
             backleft.setPower(backLeftPower);
             backright.setPower(backRightPower);
+            }
 
 
             //-----------------------------------Shooting---------------------------------------
@@ -245,7 +250,7 @@ public class NathanOpMode extends LinearOpMode {
                 }
             }
             else {
-                flywheel.setVelocity(0);
+                flywheel.setPower(0);
                 windmill.setPower(0);
             }
 
