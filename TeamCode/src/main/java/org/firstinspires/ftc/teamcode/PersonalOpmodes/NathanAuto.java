@@ -16,7 +16,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@Autonomous(name ="NathanAuto", group = "examples")
+@Autonomous(name ="NathanAuto")
 public class NathanAuto extends LinearOpMode {
     // I state my variables up here so they are within the scope of all my methods
     DcMotor frontleft;
@@ -41,7 +41,7 @@ public class NathanAuto extends LinearOpMode {
     double backRightPower = 0;
     // Creates new time variables
     double f_integralSum;
-    public static double f_kD = 0.08, f_kI = 0, f_kP = 0.009;
+    public static double f_kD = 0.05, f_kI = 0, f_kP = 0.009;
     double oldflywheelDist = 0;
     double oldtime = 0;
     ElapsedTime runtime = new ElapsedTime();
@@ -82,16 +82,16 @@ public class NathanAuto extends LinearOpMode {
         imu.resetYaw();
         waitForStart();
 
-        shoot(1180, 2000);
+        shoot(1180, 2);
         sleep(100);
-        move(1,-1,0,0.1,2,1);
+        move(1,-1,0,0.1,1,1);
         sleep(100);
-        move(-1,-1,45,0.1,2,1);
-        intake(2000);
+        move(-1,-1,15,0.5,1,1);
+        intake(2);
         sleep(100);
-        move(10,1,0,0.1,3,1);
+        move(10,1,0,0.1,2,1);
         sleep(100);
-        move(5,1,-90,1,2,1);
+        move(5,1,-90,1,1,1);
         sleep(100);
 
         telemetry.addData("Runtime: ", runtime);
@@ -183,7 +183,7 @@ public class NathanAuto extends LinearOpMode {
         right_intake_servo.setPower(-1);
         left_intake_servo.setPower(1);
 
-        sleep((long) time);
+        sleep((long) time * 1000);
 
         intake.setPower(0);
         right_intake_servo.setPower(0);

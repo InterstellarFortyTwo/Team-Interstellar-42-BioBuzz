@@ -18,7 +18,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp(name = "NathanOpMode")
-@Config
 public class NathanOpMode extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
     ElapsedTime shootTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
@@ -36,7 +35,7 @@ public class NathanOpMode extends LinearOpMode {
     boolean intakeIsOn;
 
     double f_integralSum;
-    public static double f_kD = 0.08, f_kI = 0, f_kP = 0.009;
+    public static double f_kD = 0.05, f_kI = 0, f_kP = 0.009;
 
     double frontLeftPower;
     double frontRightPower;
