@@ -120,6 +120,7 @@ public class NathanAuto extends LinearOpMode {
     public void move(double y, double x, double targetAngle, double rotateSpeed, double time, double power) throws InterruptedException {
 
         movetime.reset();
+        isMoving = true;
 
         time *= (1/power);
 
