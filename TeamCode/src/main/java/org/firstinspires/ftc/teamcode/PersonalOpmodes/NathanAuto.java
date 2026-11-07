@@ -36,6 +36,7 @@ public class NathanAuto extends LinearOpMode {
     double axial = 0;
     double lateral = 0;
     boolean shooting = false;
+    boolean isMoving = false;
     double frontLeftPower = 0;
     double frontRightPower = 0;
     double backLeftPower = 0;
@@ -122,7 +123,7 @@ public class NathanAuto extends LinearOpMode {
 
         time *= (1/power);
 
-        while (opModeIsActive() && movetime.seconds() < time) {
+        while (opModeIsActive() && isMoving) {
 
             YawPitchRollAngles angle = imu.getRobotYawPitchRollAngles();
             heading = angle.getYaw(AngleUnit.RADIANS);
@@ -159,16 +160,20 @@ public class NathanAuto extends LinearOpMode {
                 backRightPower /= max;
             }
 
-            frontleft.setPower(frontLeftPower);
-            frontright.setPower(frontRightPower);
-            backleft.setPower(backLeftPower);
-            backright.setPower(backRightPower);
-
+            if (movetime.seconds() < time) {
+                isMoving = false;
+                frontleft.setPower(0);
+                frontright.setPower(0);
+                backleft.setPower(0);
+                backright.setPower(0);
+            }
+            else {
+                frontleft.setPower(frontLeftPower);
+                frontright.setPower(frontRightPower);
+                backleft.setPower(backLeftPower);
+                backright.setPower(backRightPower);
+            }
         }
-        frontleft.setPower(0);
-        frontright.setPower(0);
-        backleft.setPower(0);
-        backright.setPower(0);
     }
     public void intake(double time) {
         //sets power to motors for a given amount of time

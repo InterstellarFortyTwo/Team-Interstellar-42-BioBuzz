@@ -16,6 +16,7 @@ import com.qualcomm.robotcore.hardware.ImuOrientationOnRobot;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 @TeleOp(name = "NathanOpMode")
 public class NathanOpMode extends LinearOpMode {
@@ -50,6 +51,7 @@ public class NathanOpMode extends LinearOpMode {
     double x;
     double rotCheck;
     double heading;
+    double Degrees;
     double moveSpeed = 1;
 
     DcMotor frontleft;
@@ -87,10 +89,11 @@ public class NathanOpMode extends LinearOpMode {
         intake.setDirection(DcMotorSimple.Direction.FORWARD);
         flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
         windmill.setDirection(DcMotorSimple.Direction.REVERSE);
-        right_intake_servo.setDirection(DcMotorSimple.Direction.FORWARD);
-        left_intake_servo.setDirection(DcMotorSimple.Direction.REVERSE);
+        right_intake_servo.setDirection(DcMotorSimple.Direction.REVERSE);
+        left_intake_servo.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        if (frontRightPower == 0 && frontLeftPower == 0 && backLeftPower == 0 && backRightPower == 0) {
+        if (Math.abs(gamepad1.left_stick_y) < 0.05 &&
+                Math.abs(gamepad1.left_stick_x) < 0.05 && Math.abs(gamepad1.right_stick_x) < 0.05) {
 
             frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -118,8 +121,9 @@ public class NathanOpMode extends LinearOpMode {
         runtime.reset();
         while (opModeIsActive()) {
 
-            heading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-            double Degrees = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+            YawPitchRollAngles angle = imu.getRobotYawPitchRollAngles();
+            heading = angle.getYaw(AngleUnit.RADIANS);
+            Degrees = angle.getYaw(AngleUnit.DEGREES);
             flywheelVel = -flywheel.getVelocity();
             y = gamepad1.left_stick_y;
             x = gamepad1.left_stick_x;
