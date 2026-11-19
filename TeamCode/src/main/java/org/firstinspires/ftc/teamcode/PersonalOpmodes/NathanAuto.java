@@ -27,8 +27,6 @@ public class NathanAuto extends LinearOpMode {
     DcMotor intake;
     DcMotorEx flywheel;
     CRServo windmill;
-    CRServo left_intake_servo;
-    CRServo right_intake_servo;
     IMU imu;
     double heading;
     double Degrees;
@@ -43,7 +41,7 @@ public class NathanAuto extends LinearOpMode {
     double backRightPower = 0;
     double currentVel;
     double f_integralSum;
-    public static double f_kD = 0.05, f_kI = 0, f_kP = 0.009;
+    public static double f_kD = 0.007, f_kI = 0, f_kP = 0.012;
     double oldflywheelDist = 0;
     double oldtime = 0;
     ElapsedTime runtime = new ElapsedTime();
@@ -63,8 +61,6 @@ public class NathanAuto extends LinearOpMode {
         flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         windmill = hardwareMap.get(CRServo.class, "windmill");
-        right_intake_servo = hardwareMap.get(CRServo.class, "rightServo");
-        left_intake_servo = hardwareMap.get(CRServo.class, "leftServo");
         imu = hardwareMap.get(IMU.class, "imu");
 
         frontleft.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -99,7 +95,7 @@ public class NathanAuto extends LinearOpMode {
         imu.resetYaw();
         waitForStart();
 
-        shoot(1180, 5);
+        shoot(1120, 5);
         sleep(100);
         move(1,1,0,0.1,0.5,1);
         sleep(100);
@@ -179,14 +175,10 @@ public class NathanAuto extends LinearOpMode {
     public void intake(double time) {
         //sets power to motors for a given amount of time
         intake.setPower(1);
-        right_intake_servo.setPower(-1);
-        left_intake_servo.setPower(1);
 
         sleep((long) (time * 1000));
 
         intake.setPower(0);
-        right_intake_servo.setPower(0);
-        left_intake_servo.setPower(0);
     }
     public void shoot(double targetVel, double time) {
 
@@ -195,7 +187,7 @@ public class NathanAuto extends LinearOpMode {
 
         while (opModeIsActive() && shooting) {
 
-            currentVel = flywheel.getVelocity();
+            currentVel = -flywheel.getVelocity();
 
             flywheel.setPower(pid(f_kP, f_kI, f_kD, oldflywheelDist, oldtime, targetVel - currentVel, runtime.milliseconds()));
 

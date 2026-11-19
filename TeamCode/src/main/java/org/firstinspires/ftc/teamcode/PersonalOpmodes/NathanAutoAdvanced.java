@@ -4,6 +4,7 @@ import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 import static java.lang.Math.sqrt;
 
+import com.qualcomm.hardware.digitalchickenlabs.OctoQuad;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -31,6 +32,7 @@ public class NathanAutoAdvanced extends LinearOpMode {
     CRServo left_intake_servo;
     CRServo right_intake_servo;
     IMU imu;
+    OctoQuad octo;
     double heading;
     double Degrees;
     double yaw = 0;
@@ -67,6 +69,7 @@ public class NathanAutoAdvanced extends LinearOpMode {
         right_intake_servo = hardwareMap.get(CRServo.class, "rightServo");
         left_intake_servo = hardwareMap.get(CRServo.class, "leftServo");
         imu = hardwareMap.get(IMU.class, "imu");
+        octo = hardwareMap.get(OctoQuad.class, "octo");
 
         frontleft.setDirection(DcMotorSimple.Direction.REVERSE);
         backleft.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -202,7 +205,7 @@ public class NathanAutoAdvanced extends LinearOpMode {
 
         while (opModeIsActive() && shooting) {
 
-            currentVel = flywheel.getVelocity();
+            currentVel = -flywheel.getVelocity();
 
             flywheel.setPower(pid(f_kP, f_kI, f_kD, oldflywheelDist, oldtime, targetVel - currentVel, runtime.milliseconds()));
 

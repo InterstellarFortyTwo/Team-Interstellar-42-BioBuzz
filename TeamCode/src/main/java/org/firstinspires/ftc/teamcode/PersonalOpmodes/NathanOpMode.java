@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.PersonalOpmodes;
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -13,6 +12,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.ImuOrientationOnRobot;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -25,18 +25,20 @@ public class NathanOpMode extends LinearOpMode {
 
     boolean isShooting = false;
     double flywheelVel;
-    double targetFlywheelVel = 1240;
+    double targetFlywheelVel = 1120;
     double oldFlywheelDist = 0;
     double oldTime = 0;
-    boolean isIntakeRunning = true;
     boolean lastB = false;
     boolean lastC = false;
+    boolean lastE = false;
     boolean angleSnapping = false;
     boolean lastD = false;
-    boolean intakeIsOn;
+    boolean intakeIsOn = false;
+    boolean flowerServo = false;
+    boolean intakeIsReverse = false;
 
     double f_integralSum;
-    public static double f_kD = 0.05, f_kI = 0, f_kP = 0.009;
+    public static double f_kD = 0.007, f_kI = 0, f_kP = 0.012;
 
     double frontLeftPower;
     double frontRightPower;
@@ -60,9 +62,8 @@ public class NathanOpMode extends LinearOpMode {
     DcMotor backright;
     DcMotorEx flywheel;
     DcMotorEx intake;
-    CRServo right_intake_servo;
-    CRServo left_intake_servo;
     CRServo windmill;
+    Servo leftServo;
     IMU imu;
 
     @Override
@@ -79,8 +80,7 @@ public class NathanOpMode extends LinearOpMode {
         intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         windmill = hardwareMap.get(CRServo.class, "windmill");
-        right_intake_servo = hardwareMap.get(CRServo.class, "rightServo");
-        left_intake_servo = hardwareMap.get(CRServo.class, "leftServo");
+        leftServo = hardwareMap.get(Servo. class, "leftServo");
 
         frontleft.setDirection(DcMotorSimple.Direction.FORWARD);
         frontright.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -89,23 +89,12 @@ public class NathanOpMode extends LinearOpMode {
         intake.setDirection(DcMotorSimple.Direction.FORWARD);
         flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
         windmill.setDirection(DcMotorSimple.Direction.REVERSE);
-        right_intake_servo.setDirection(DcMotorSimple.Direction.REVERSE);
-        left_intake_servo.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        if (Math.abs(gamepad1.left_stick_y) < 0.05 &&
-                Math.abs(gamepad1.left_stick_x) < 0.05 && Math.abs(gamepad1.right_stick_x) < 0.05) {
+        frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-            frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        }
-        else {
-            frontright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            frontleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            backleft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            backright.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        }
 
         imu = hardwareMap.get(IMU.class, "imu");
 
@@ -127,17 +116,16 @@ public class NathanOpMode extends LinearOpMode {
             flywheelVel = -flywheel.getVelocity();
             y = gamepad1.left_stick_y;
             x = gamepad1.left_stick_x;
-            yaw = gamepad1.right_stick_x;
             rotCheck = gamepad1.right_stick_x;
 
 
             //------------------------------------Movement----------------------------------------
 
 
-            telemetry.addLine("Press Left Stick or dpad down to change move speed");
+            telemetry.addLine("Press Left Stick or dpad down to change movement speed");
             if (gamepad1.leftStickButtonWasPressed() || gamepad1.dpadDownWasPressed()) {
                 if (moveSpeed == 1) {
-                    moveSpeed = 0.5;
+                    moveSpeed = 0.7;
                 } else {
                     moveSpeed = 1;
                 }
@@ -164,35 +152,40 @@ public class NathanOpMode extends LinearOpMode {
                 telemetry.addLine("Field Centric Toggled: Off");
             }
 
-            telemetry.addLine("Press 'X' to toggle angle snapping");
-            if (gamepad1.x && !lastC) {
+            telemetry.addLine("Press dpad right to toggle angle snapping");
+            if (gamepad1.dpad_right && !lastC) {
                 angleSnapping = !angleSnapping;
             }
-            lastC = gamepad1.x;
+            lastC = gamepad1.dpad_right;
 
             if (angleSnapping) {
-                    if (AngleUnit.normalizeDegrees(0 - Degrees) >= 5 && AngleUnit.normalizeDegrees(0 - Degrees) <= 5 && rotCheck == 0) {
+                if (Math.abs(0 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(0 - Degrees) <= 0.5) {
                     yaw = 0 - Degrees;
                 }
-                else if (AngleUnit.normalizeDegrees(90 - Degrees) >= 5 && AngleUnit.normalizeDegrees(90 - Degrees) <= 5 && rotCheck == 0) {
+                else if (Math.abs(90 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(90 - Degrees) <= 0.5) {
                     yaw = 90 - Degrees;
                 }
-                else if (AngleUnit.normalizeDegrees(-90 - Degrees) >= 5 && AngleUnit.normalizeDegrees(-90 - Degrees) <= 5 && rotCheck == 0) {
+                else if (Math.abs(-90 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(-90 - Degrees) <= 0.5) {
                     yaw = -90 - Degrees;
                 }
-                else if (AngleUnit.normalizeDegrees(180 - Degrees) >= 5 && AngleUnit.normalizeDegrees(180 - Degrees) <= 5 && rotCheck == 0) {
+                else if (Math.abs(180 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(180 - Degrees) <= 0.5) {
                     yaw = 180 - Degrees;
+                }
+                else
+                {
+                    yaw = gamepad1.right_stick_x;
                 }
             telemetry.addLine("Angle snapping: On");
             }
             else {
                 telemetry.addLine("Angle snapping: Off");
+                yaw = gamepad1.right_stick_x;
             }
 
-            frontRightPower = (axial + yaw + lateral) * moveSpeed;
-            frontLeftPower = (axial - yaw - lateral) * moveSpeed;
-            backRightPower = (axial + yaw - lateral) * moveSpeed;
-            backLeftPower = (axial - yaw + lateral) * moveSpeed;
+            frontRightPower = axial + lateral + yaw;
+            frontLeftPower = axial - lateral - yaw;
+            backRightPower = axial - lateral + yaw;
+            backLeftPower = axial + lateral - yaw;
 
             double max;
             max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
@@ -205,6 +198,11 @@ public class NathanOpMode extends LinearOpMode {
                 backLeftPower /= max;
                 backRightPower /= max;
             }
+
+            frontRightPower *= moveSpeed;
+            frontLeftPower *= moveSpeed;
+            backRightPower *= moveSpeed;
+            backLeftPower *= moveSpeed;
 
             if (Math.abs(gamepad1.left_stick_x) < 0.05
                     && Math.abs(gamepad1.left_stick_y) < 0.05
@@ -266,20 +264,41 @@ public class NathanOpMode extends LinearOpMode {
 
 
             telemetry.addLine("Press 'B' to power intake");
-            if (gamepad1.b && !lastD && isIntakeRunning) {
-            intakeIsOn = !intakeIsOn;
+            telemetry.addLine("Press 'Right Trigger' to reverse intake when intake is on");
+            if (gamepad1.b && !lastD) {
+                intakeIsOn = !intakeIsOn;
             }
             lastD = gamepad1.b;
 
-            if (intakeIsOn) {
-                left_intake_servo.setPower(1);
-                right_intake_servo.setPower(1);
-                intake.setPower(1);
+            if (gamepad1.right_trigger_pressed) {
+                intakeIsReverse = true;
             }
             else {
-                left_intake_servo.setPower(0);
-                right_intake_servo.setPower(0);
+                intakeIsReverse = false;
+            }
+
+            if (intakeIsOn && !intakeIsReverse) {
+                intake.setPower(1);
+            }
+            //If our intake is on then the power is one
+            else if (intakeIsReverse) {
+                intake.setPower(-1);
+            }
+            else {
                 intake.setPower(0);
+            }
+
+            telemetry.addLine("Press 'Y' to intake from flower");
+            if(gamepad1.y && !lastE) {
+                flowerServo = !flowerServo;
+            }
+            lastE = gamepad1.y;
+
+            if (flowerServo) {
+                leftServo.setPosition(0.0);
+            }
+            else {
+                leftServo.setPosition(1.0);
             }
 
 
