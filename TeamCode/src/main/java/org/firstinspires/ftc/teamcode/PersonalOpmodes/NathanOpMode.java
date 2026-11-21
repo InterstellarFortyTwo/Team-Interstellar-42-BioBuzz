@@ -80,7 +80,7 @@ public class NathanOpMode extends LinearOpMode {
         intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         windmill = hardwareMap.get(CRServo.class, "windmill");
-        leftServo = hardwareMap.get(Servo. class, "leftServo");
+        leftServo = hardwareMap.get(Servo.class, "leftServo");
 
         frontleft.setDirection(DcMotorSimple.Direction.FORWARD);
         frontright.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -298,7 +298,7 @@ public class NathanOpMode extends LinearOpMode {
                 leftServo.setPosition(0.0);
             }
             else {
-                leftServo.setPosition(1.0);
+                leftServo.setPosition(0.7);
             }
 
 

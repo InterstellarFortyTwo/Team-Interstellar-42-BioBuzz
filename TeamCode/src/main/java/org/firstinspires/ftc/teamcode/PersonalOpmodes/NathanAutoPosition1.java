@@ -18,7 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 @Autonomous(name ="NathanAuto")
-public class NathanAuto extends LinearOpMode {
+public class NathanAutoPosition1 extends LinearOpMode {
     // I state my variables up here so they are within the scope of all my methods
     DcMotor frontleft;
     DcMotor frontright;
@@ -157,7 +157,7 @@ public class NathanAuto extends LinearOpMode {
                 backRightPower /= max;
             }
 
-            if (movetime.seconds() < time) {
+            if (movetime.seconds() > time) {
                 isMoving = false;
                 frontleft.setPower(0);
                 frontright.setPower(0);
