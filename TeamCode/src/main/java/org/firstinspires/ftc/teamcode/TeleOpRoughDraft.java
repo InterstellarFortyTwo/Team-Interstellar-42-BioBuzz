@@ -21,7 +21,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
-import org.firstinspires.ftc.teamcode.hardwareCode.PIDConfig;
+import org.firstinspires.ftc.teamcode.HardwareCode.PIDConfig;
 
 import java.util.concurrent.TimeUnit;
 

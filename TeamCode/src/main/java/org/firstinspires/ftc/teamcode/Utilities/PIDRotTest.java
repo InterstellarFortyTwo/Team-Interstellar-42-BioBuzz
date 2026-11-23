@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.ImuOrientationOnRobot;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.hardwareCode.PIDConfig;
+import org.firstinspires.ftc.teamcode.HardwareCode.PIDConfig;
 
 @TeleOp(name = "PID Rot Test", group = "Tests")
 public class PIDRotTest extends LinearOpMode {
@@ -19,8 +19,8 @@ public class PIDRotTest extends LinearOpMode {
     double[] stepSizes = {0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001};
     //Index to select the current step size from the array
     int stepIndex = 2;
-    public static double r_kD = 0.002, r_kI = 0.000001, r_kP = .008;
-    PIDConfig LaunchPID = new PIDConfig(r_kP, r_kI, r_kD);
+    public static double r_kD = 0.002, r_kI = 0.000001, r_kP = .008, r_kF = 0;
+    PIDConfig LaunchPID = new PIDConfig(r_kP, r_kI, r_kD, r_kF);
     DcMotor frontleft;
     DcMotor frontright;
     DcMotor backleft;

@@ -12,8 +12,13 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.ImuOrientationOnRobot;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.teamcode.HardwareCode.PIDConfig;
+import org.firstinspires.ftc.teamcode.HardwareCode.FieldToggle;
+import org.firstinspires.ftc.teamcode.HardwareCode.testingFlywheelVelocity;
+import org.firstinspires.ftc.teamcode.HardwareCode.SwerveRateLimiterSettings;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -22,12 +27,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 public class NathanOpMode extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
     ElapsedTime shootTimer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+    ElapsedTime loopTimer = new ElapsedTime();
 
     boolean isShooting = false;
     double flywheelVel;
-    double targetFlywheelVel = 1120;
-    double oldFlywheelDist = 0;
-    double oldTime = 0;
+    double targetFlywheelVel = 1160;
     boolean lastB = false;
     boolean lastC = false;
     boolean lastE = false;
@@ -36,9 +40,21 @@ public class NathanOpMode extends LinearOpMode {
     boolean intakeIsOn = false;
     boolean flowerServo = false;
     boolean intakeIsReverse = false;
+    boolean flywheelIsReversed = false;
+    boolean fieldToggle;
+    double testingVel = 1160;
+    double maxAccel = 2.5;
+    double maxDecel = 4.0;
+    double maxRotAccel = 3.0;
+    double maxRotDecel = 5.0;
 
-    double f_integralSum;
-    public static double f_kD = 0.007, f_kI = 0, f_kP = 0.012;
+    double r_integralSum;
+    public static double f_kD = 0, f_kI = 0, f_kP = 1.16, f_kF = 11.6;
+    PIDConfig LaunchPID = new PIDConfig(f_kP, f_kI, f_kD, f_kF);
+    FieldToggle Movement = new FieldToggle(false);
+    testingFlywheelVelocity Vel = new testingFlywheelVelocity(testingVel);
+    SwerveRateLimiterSettings Swerve = new SwerveRateLimiterSettings(maxAccel, maxDecel, maxRotAccel, maxRotDecel);
+
 
     double frontLeftPower;
     double frontRightPower;
@@ -48,13 +64,12 @@ public class NathanOpMode extends LinearOpMode {
     double axial;
     double lateral;
     boolean lastA;
-    boolean fieldToggle;
     double y;
     double x;
     double rotCheck;
+    double turn;
     double heading;
     double Degrees;
-    double moveSpeed = 1;
 
     DcMotor frontleft;
     DcMotor backleft;
@@ -75,7 +90,9 @@ public class NathanOpMode extends LinearOpMode {
         backright = hardwareMap.get(DcMotor.class, "backright");
         flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
         flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        PIDFCoefficients pidfCoefficients = new PIDFCoefficients(f_kP, f_kI, f_kD, f_kF);
+        flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);
         intake = hardwareMap.get(DcMotorEx.class, "intake");
         intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -110,6 +127,10 @@ public class NathanOpMode extends LinearOpMode {
         runtime.reset();
         while (opModeIsActive()) {
 
+            //-----------------------------------initialization------------------------------------------
+
+            double dt = loopTimer.seconds();
+            loopTimer.reset();
             YawPitchRollAngles angle = imu.getRobotYawPitchRollAngles();
             heading = angle.getYaw(AngleUnit.RADIANS);
             Degrees = angle.getYaw(AngleUnit.DEGREES);
@@ -117,42 +138,73 @@ public class NathanOpMode extends LinearOpMode {
             y = gamepad1.left_stick_y;
             x = gamepad1.left_stick_x;
             rotCheck = gamepad1.right_stick_x;
+            turn = gamepad1.right_stick_x;
+
+            //----------------------------------Testing & Preferences---------------------------------------------
+
+            if(gamepad2.leftBumperWasPressed()) {
+                testingVel += 10;
+            }
+            if(gamepad2.rightBumperWasPressed()) {
+                testingVel -= 10;
+            }
+            Vel.setTestingFlywheelVelocity(testingVel);
+
+
+            if(gamepad2.aWasPressed()) {
+                maxAccel += 1;
+                maxDecel += 1;
+                maxRotDecel += 1;
+                maxRotAccel += 1;
+            }
+            if(gamepad2.xWasPressed()) {
+                maxAccel -= 1;
+                maxDecel -= 1;
+                maxRotDecel -= 1;
+                maxRotAccel -= 1;
+            }
+            if(maxAccel < 0) {
+                maxAccel += 1;
+            }
+            else if(maxDecel < 0) {
+                maxDecel += 1;
+            }
+            else if(maxRotAccel < 0) {
+                maxRotAccel += 1;
+            }
+            else if(maxRotDecel < 0) {
+                maxRotDecel += 1;
+            }
+            Swerve.setAcceleration(maxAccel);
+            Swerve.setDeceleration(maxDecel);
+            Swerve.setRotAcceleration(maxRotAccel);
+            Swerve.setRotDeceleration(maxRotDecel);
+
+
+            if (gamepad2.dpad_up && !lastA) {
+                fieldToggle = !fieldToggle;
+            }
+            lastA = gamepad2.dpad_up;
+            Movement.setFieldToggle(fieldToggle);
+
+            if (Movement.getFieldToggle()) {
+                axial = slewLimit(y * cos(-heading) - x * sin(-heading), axial, Swerve.getAcceleration(), Swerve.getDeceleration(), dt);
+                lateral = slewLimit(y * sin(-heading) + x * cos(-heading), lateral, Swerve.getAcceleration(), Swerve.getDeceleration(),dt);
+                telemetry.addLine("Field Centric Toggled: On");
+            } else {
+                axial = slewLimit(y, axial, Swerve.getAcceleration(), Swerve.getDeceleration(), dt);
+                lateral = slewLimit(x, lateral, Swerve.getAcceleration(), Swerve.getDeceleration(), dt);
+                telemetry.addLine("Field Centric Toggled: Off");
+            }
 
 
             //------------------------------------Movement----------------------------------------
 
 
-            telemetry.addLine("Press Left Stick or dpad down to change movement speed");
-            if (gamepad1.leftStickButtonWasPressed() || gamepad1.dpadDownWasPressed()) {
-                if (moveSpeed == 1) {
-                    moveSpeed = 0.7;
-                } else {
-                    moveSpeed = 1;
-                }
-            }
-
-            telemetry.addLine("Press dpad left to reset imu");
             if (gamepad1.dpad_left) {
                 imu.resetYaw();
             }
 
-            telemetry.addLine("Press dpad up to toggle field centric");
-            if (gamepad1.dpad_up && !lastA) {
-                fieldToggle = !fieldToggle;
-            }
-            lastA = gamepad1.dpad_up;
-
-            if (fieldToggle) {
-                axial = y * cos(-heading) - x * sin(-heading);
-                lateral = y * sin(-heading) + x * cos(-heading);
-                telemetry.addLine("Field Centric Toggled: On");
-            } else {
-                axial = y;
-                lateral = x;
-                telemetry.addLine("Field Centric Toggled: Off");
-            }
-
-            telemetry.addLine("Press dpad right to toggle angle snapping");
             if (gamepad1.dpad_right && !lastC) {
                 angleSnapping = !angleSnapping;
             }
@@ -173,7 +225,7 @@ public class NathanOpMode extends LinearOpMode {
                 }
                 else
                 {
-                    yaw = gamepad1.right_stick_x;
+                    yaw = slewLimit(turn, yaw, Swerve.getRotAcceleration(), Swerve.getRotDeceleration(), dt);
                 }
             telemetry.addLine("Angle snapping: On");
             }
@@ -199,11 +251,6 @@ public class NathanOpMode extends LinearOpMode {
                 backRightPower /= max;
             }
 
-            frontRightPower *= moveSpeed;
-            frontLeftPower *= moveSpeed;
-            backRightPower *= moveSpeed;
-            backLeftPower *= moveSpeed;
-
             if (Math.abs(gamepad1.left_stick_x) < 0.05
                     && Math.abs(gamepad1.left_stick_y) < 0.05
                     && Math.abs(gamepad1.right_stick_x) < 0.05) {
@@ -224,7 +271,7 @@ public class NathanOpMode extends LinearOpMode {
             //-----------------------------------Shooting---------------------------------------
 
 
-            telemetry.addLine("Press right and left bumper to increase or decrease target flywheel velocity");
+            targetFlywheelVel = Vel.getTestingFlywheelVelocity();
             if (gamepad1.rightBumperWasPressed()) {
                 targetFlywheelVel += 10;
             }
@@ -232,17 +279,18 @@ public class NathanOpMode extends LinearOpMode {
                 targetFlywheelVel -= 10;
             }
 
-            telemetry.addLine("Press 'A' to shoot");
+            flywheelIsReversed = gamepad1.left_trigger_pressed;
+
             if (gamepad1.a && !lastB) {
                 isShooting = !isShooting;
             }
             lastB = gamepad1.a;
 
-            if(isShooting) {
+            if(isShooting && !flywheelIsReversed) {
 
                 shootTimer.reset();
 
-                flywheel.setPower(pid(f_kP, f_kI, f_kD, oldFlywheelDist, oldTime, targetFlywheelVel - flywheelVel, runtime.milliseconds()));
+                flywheel.setVelocity(targetFlywheelVel);
 
                 if (targetFlywheelVel - flywheelVel >= -80 && targetFlywheelVel - flywheelVel <= 10) {
                     windmill.setPower(1);
@@ -251,31 +299,25 @@ public class NathanOpMode extends LinearOpMode {
                     windmill.setPower(0);
                 }
             }
+            else if (flywheelIsReversed){
+                flywheel.setPower(-1);
+                windmill.setPower(0);
+            }
             else {
                 flywheel.setPower(0);
                 windmill.setPower(0);
             }
 
-            oldTime = runtime.milliseconds();
-            oldFlywheelDist = targetFlywheelVel - flywheelVel;
-
 
             //-------------------------------intake--------------------------------
 
 
-            telemetry.addLine("Press 'B' to power intake");
-            telemetry.addLine("Press 'Right Trigger' to reverse intake when intake is on");
             if (gamepad1.b && !lastD) {
                 intakeIsOn = !intakeIsOn;
             }
             lastD = gamepad1.b;
 
-            if (gamepad1.right_trigger_pressed) {
-                intakeIsReverse = true;
-            }
-            else {
-                intakeIsReverse = false;
-            }
+            intakeIsReverse = gamepad1.right_trigger_pressed;
 
             if (intakeIsOn && !intakeIsReverse) {
                 intake.setPower(1);
@@ -288,7 +330,6 @@ public class NathanOpMode extends LinearOpMode {
                 intake.setPower(0);
             }
 
-            telemetry.addLine("Press 'Y' to intake from flower");
             if(gamepad1.y && !lastE) {
                 flowerServo = !flowerServo;
             }
@@ -303,7 +344,6 @@ public class NathanOpMode extends LinearOpMode {
 
 
             //---------------------telemetry--------------------
-            telemetry.addData("Movement speed: ", moveSpeed);
             telemetry.addData("Current rotation: ", Degrees);
             telemetry.addData("Target flywheel velocity: ", targetFlywheelVel);
             telemetry.addData("Current flywheel velocity: ", flywheelVel);
@@ -317,13 +357,23 @@ public class NathanOpMode extends LinearOpMode {
 
         double i = 0;
 
-        f_integralSum += (tNew-tOld)*((distOld+distNew)/2);
-        i = f_integralSum * integral;
+        r_integralSum += (tNew-tOld)*((distOld+distNew)/2);
+        i = r_integralSum * integral;
 
         double vel = (distNew - distOld)/(tNew - tOld);
         double d = -vel * dampening;
 
         return p + i + d;
+    }
+    public double slewLimit(double target, double current, double maxAccelRate, double maxDecelRate, double dt) {
+        double error = target - current;
+        double rate = (Math.abs(target) < Math.abs(current)) ? maxDecelRate : maxAccelRate;
+        double maxChange = rate * dt;
+
+        if (Math.abs(error) <= maxChange) {
+            return target;
+        }
+        return current + Math.signum(error) * maxChange;
     }
 }
 

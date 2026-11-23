@@ -8,17 +8,17 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.hardwareCode.PIDConfig;
+import org.firstinspires.ftc.teamcode.HardwareCode.PIDConfig;
 
 @TeleOp(name = "PID Shooter Test", group = "Tests")
 public class PIDShooterTest extends LinearOpMode {
 
     ElapsedTime runtime = new ElapsedTime();
-    double[] stepSizes = {0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001};
+    double[] stepSizes = {10, 1, 0.1, 0.01, 0.001, 0.0001};
     //Index to select the current step size from the array
     int stepIndex = 2;
-    public static double f_kD = 0.007, f_kI = 0.0, f_kP = 0.012;
-    PIDConfig LaunchPID = new PIDConfig(f_kP, f_kI, f_kD);
+    public static double f_kD = 0.007, f_kI = 0.0, f_kP = 0.012, f_kF = 12;
+    PIDConfig LaunchPID = new PIDConfig(f_kP, f_kI, f_kD, f_kF);
     DcMotorEx flywheel;
     DcMotor intake;
     double targetVel = 1160;
