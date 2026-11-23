@@ -128,7 +128,7 @@ public class NathanOpMode extends LinearOpMode {
         imu.resetYaw();
         waitForStart();
         runtime.reset();
-        targetFlywheelVel = Vel.getTestingFlywheelVelocity();
+        targetFlywheelVel = testingVel;
         while (opModeIsActive()) {
 
             //-----------------------------------initialization------------------------------------------
@@ -147,13 +147,12 @@ public class NathanOpMode extends LinearOpMode {
             //----------------------------------Testing & Preferences---------------------------------------------
 
             if(gamepad2.leftBumperWasPressed()) {
-                testingVel += 10;
+                Vel.setTestingFlywheelVelocity(Vel.getTestingFlywheelVelocity() + 10);
             }
             if(gamepad2.rightBumperWasPressed()) {
-                testingVel -= 10;
+                Vel.setTestingFlywheelVelocity(Vel.getTestingFlywheelVelocity() - 10);
             }
-            Vel.setTestingFlywheelVelocity(testingVel);
-
+            testingVel = Vel.getTestingFlywheelVelocity();
 
             if (gamepad2.bWasPressed()) {
                 stepIndex = (stepIndex +1) % stepSizes.length; //Modulo wraps the index back to 0
@@ -201,48 +200,48 @@ public class NathanOpMode extends LinearOpMode {
 
 
             if(gamepad2.bWasPressed()) {
-                maxAccel += stepSizes[stepIndex];
-                maxDecel += stepSizes[stepIndex];
-                maxRotDecel += stepSizes[stepIndex];
-                maxRotAccel += stepSizes[stepIndex];
+                Swerve.setAcceleration(Swerve.getAcceleration() + stepSizes[stepIndex]);
+                Swerve.setDeceleration(Swerve.getDeceleration() + stepSizes[stepIndex]);
+                Swerve.setRotAcceleration(Swerve.getRotAcceleration() + stepSizes[stepIndex]);
+                Swerve.setRotDeceleration(Swerve.getRotDeceleration() + stepSizes[stepIndex]);
             }
             if(gamepad2.xWasPressed()) {
-                maxAccel -= stepSizes[stepIndex];
-                maxDecel -= stepSizes[stepIndex];
-                maxRotDecel -= stepSizes[stepIndex];
-                maxRotAccel -= stepSizes[stepIndex];
+                Swerve.setAcceleration(Swerve.getAcceleration() - stepSizes[stepIndex]);
+                Swerve.setDeceleration(Swerve.getDeceleration() - stepSizes[stepIndex]);
+                Swerve.setRotAcceleration(Swerve.getRotAcceleration() - stepSizes[stepIndex]);
+                Swerve.setRotDeceleration(Swerve.getRotDeceleration() - stepSizes[stepIndex]);
             }
-            if(maxAccel <= 0) {
-                maxAccel += 1;
+            if(Swerve.getAcceleration() <= 0) {
+                Swerve.setAcceleration(Swerve.getAcceleration() + stepSizes[stepIndex]);
             }
-            else if(maxDecel <= 0) {
-                maxDecel += 1;
+            else if(Swerve.getDeceleration() <= 0) {
+                Swerve.setDeceleration(Swerve.getDeceleration() + stepSizes[stepIndex]);
             }
-            else if(maxRotAccel <= 0) {
-                maxRotAccel += 1;
+            else if(Swerve.getRotAcceleration() <= 0) {
+                Swerve.setRotAcceleration(Swerve.getRotAcceleration() + stepSizes[stepIndex]);
             }
-            else if(maxRotDecel <= 0) {
-                maxRotDecel += 1;
+            else if(Swerve.getRotDeceleration() <= 0) {
+                Swerve.setRotDeceleration(Swerve.getRotDeceleration() + stepSizes[stepIndex]);
             }
-            Swerve.setAcceleration(maxAccel);
-            Swerve.setDeceleration(maxDecel);
-            Swerve.setRotAcceleration(maxRotAccel);
-            Swerve.setRotDeceleration(maxRotDecel);
+            maxAccel = Swerve.getAcceleration();
+            maxDecel = Swerve.getDeceleration();
+            maxRotAccel = Swerve.getRotAcceleration();
+            maxRotDecel = Swerve.getRotDeceleration();
 
 
             if (gamepad2.y && !lastA) {
-                fieldToggle = !fieldToggle;
+                Movement.setFieldToggle(!Movement.getFieldToggle());
             }
             lastA = gamepad2.y;
-            Movement.setFieldToggle(fieldToggle);
+            fieldToggle = Movement.getFieldToggle();
 
-            if (Movement.getFieldToggle()) {
-                axial = slewLimit(y * cos(-heading) - x * sin(-heading), axial, Swerve.getAcceleration(), Swerve.getDeceleration(), dt);
-                lateral = slewLimit(y * sin(-heading) + x * cos(-heading), lateral, Swerve.getAcceleration(), Swerve.getDeceleration(),dt);
+            if (fieldToggle) {
+                axial = slewLimit(y * cos(-heading) - x * sin(-heading), axial, maxAccel, maxDecel, dt);
+                lateral = slewLimit(y * sin(-heading) + x * cos(-heading), lateral, maxAccel, maxDecel,dt);
                 telemetry.addLine("Field Centric Toggled: On");
             } else {
-                axial = slewLimit(y, axial, Swerve.getAcceleration(), Swerve.getDeceleration(), dt);
-                lateral = slewLimit(x, lateral, Swerve.getAcceleration(), Swerve.getDeceleration(), dt);
+                axial = slewLimit(y, axial, maxAccel, maxDecel, dt);
+                lateral = slewLimit(x, lateral, maxAccel, maxDecel, dt);
                 telemetry.addLine("Field Centric Toggled: Off");
             }
 
@@ -273,7 +272,7 @@ public class NathanOpMode extends LinearOpMode {
                     yaw = (180 - Degrees) * 0.1;
                 }
                 else {
-                    yaw = slewLimit(turn, yaw, Swerve.getRotAcceleration(), Swerve.getRotDeceleration(), dt);
+                    yaw = slewLimit(turn, yaw, maxRotAccel, maxRotDecel, dt);
                 }
             telemetry.addLine("Angle snapping: On");
             }

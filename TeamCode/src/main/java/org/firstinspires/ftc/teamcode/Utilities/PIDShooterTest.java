@@ -70,15 +70,16 @@ public class PIDShooterTest extends LinearOpMode {
             }
             telemetry.addLine("press X & Y to increase or decrease integral");
             if (gamepad1.xWasPressed()) {
-                LaunchPID.setkI(LaunchPID.getkI() + stepSizes[stepIndex]);
+                LaunchPID.setkF(LaunchPID.getkF() + stepSizes[stepIndex]);
             }
             if (gamepad1.yWasPressed()) {
-                LaunchPID.setkI(LaunchPID.getkI() - stepSizes[stepIndex]);
+                LaunchPID.setkF(LaunchPID.getkF() - stepSizes[stepIndex]);
             }
 
             f_kP = LaunchPID.getkP();
             f_kI = LaunchPID.getkI();
             f_kD = LaunchPID.getkD();
+            f_kF = LaunchPID.getkF();
 
             double flywheelVel = -flywheel.getVelocity();
 
@@ -117,7 +118,6 @@ public class PIDShooterTest extends LinearOpMode {
             telemetry.addData("Integral: ", f_kI);
             telemetry.addData("Dampening: ", f_kD);
             telemetry.addData("flywheel speed: ", flywheelVel);
-            telemetry.addData("flywheel power: ", pid(f_kP, f_kI, f_kD, oldFlywheelVel, timeOld, targetVel - flywheelVel, runtime.milliseconds()));
             telemetry.addData("target velocity: ", targetVel);
             telemetry.update();
         }
