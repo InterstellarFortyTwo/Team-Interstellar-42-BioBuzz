@@ -35,6 +35,8 @@ public class NathanOpMode extends LinearOpMode {
     boolean lastB = false;
     boolean lastC = false;
     boolean lastE = false;
+    boolean lastF = false;
+    boolean isShooting2 = false;
     boolean angleSnapping = false;
     boolean lastD = false;
     boolean intakeIsOn = false;
@@ -55,6 +57,9 @@ public class NathanOpMode extends LinearOpMode {
     testingFlywheelVelocity Vel = new testingFlywheelVelocity(testingVel);
     SwerveRateLimiterSettings Swerve = new SwerveRateLimiterSettings(maxAccel, maxDecel, maxRotAccel, maxRotDecel);
 
+    double[] stepSizes = {10, 1, 0.1, 0.01, 0.001, 0.0001};
+    //Index to select the current step size from the array
+    int stepIndex = 1;
 
     double frontLeftPower;
     double frontRightPower;
@@ -91,8 +96,6 @@ public class NathanOpMode extends LinearOpMode {
         flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
         flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        PIDFCoefficients pidfCoefficients = new PIDFCoefficients(f_kP, f_kI, f_kD, f_kF);
-        flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);
         intake = hardwareMap.get(DcMotorEx.class, "intake");
         intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -151,7 +154,52 @@ public class NathanOpMode extends LinearOpMode {
             Vel.setTestingFlywheelVelocity(testingVel);
 
 
-            if(gamepad2.aWasPressed()) {
+            if (gamepad2.bWasPressed()) {
+                stepIndex = (stepIndex +1) % stepSizes.length; //Modulo wraps the index back to 0
+            }
+            if (gamepad2.dpadLeftWasPressed()) {
+                LaunchPID.setkP(LaunchPID.getkP() - stepSizes[stepIndex]);
+            }
+            if (gamepad2.dpadRightWasPressed()) {
+                LaunchPID.setkP(LaunchPID.getkP() + stepSizes[stepIndex]);
+            }
+            if (gamepad2.dpadUpWasPressed()) {
+                LaunchPID.setkF(LaunchPID.getkF() + stepSizes[stepIndex]);
+            }
+            if (gamepad2.dpadDownWasPressed()) {
+                LaunchPID.setkF(LaunchPID.getkF() - stepSizes[stepIndex]);
+            }
+            f_kP = LaunchPID.getkP();
+            f_kF = LaunchPID.getkF();
+
+            PIDFCoefficients pidfCoefficients = new PIDFCoefficients(f_kP, f_kI, f_kD, f_kF);
+            flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);
+
+            if (gamepad2.a && !lastF) {
+                isShooting2 = !isShooting2;
+            }
+            lastF = gamepad2.a;
+
+            if(isShooting2) {
+
+                shootTimer.reset();
+
+                flywheel.setVelocity(testingVel);
+
+                if (targetFlywheelVel - flywheelVel >= -80 && targetFlywheelVel - flywheelVel <= 10) {
+                    windmill.setPower(1);
+                }
+                else {
+                    windmill.setPower(0);
+                }
+            }
+            else {
+                flywheel.setPower(0);
+                windmill.setPower(0);
+            }
+
+
+            if(gamepad2.bWasPressed()) {
                 maxAccel += 1;
                 maxDecel += 1;
                 maxRotDecel += 1;
@@ -163,16 +211,16 @@ public class NathanOpMode extends LinearOpMode {
                 maxRotDecel -= 1;
                 maxRotAccel -= 1;
             }
-            if(maxAccel < 0) {
+            if(maxAccel <= 0) {
                 maxAccel += 1;
             }
-            else if(maxDecel < 0) {
+            else if(maxDecel <= 0) {
                 maxDecel += 1;
             }
-            else if(maxRotAccel < 0) {
+            else if(maxRotAccel <= 0) {
                 maxRotAccel += 1;
             }
-            else if(maxRotDecel < 0) {
+            else if(maxRotDecel <= 0) {
                 maxRotDecel += 1;
             }
             Swerve.setAcceleration(maxAccel);
@@ -181,10 +229,10 @@ public class NathanOpMode extends LinearOpMode {
             Swerve.setRotDeceleration(maxRotDecel);
 
 
-            if (gamepad2.dpad_up && !lastA) {
+            if (gamepad2.y && !lastA) {
                 fieldToggle = !fieldToggle;
             }
-            lastA = gamepad2.dpad_up;
+            lastA = gamepad2.y;
             Movement.setFieldToggle(fieldToggle);
 
             if (Movement.getFieldToggle()) {
