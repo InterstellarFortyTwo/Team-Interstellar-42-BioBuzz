@@ -128,6 +128,7 @@ public class NathanOpMode extends LinearOpMode {
         imu.resetYaw();
         waitForStart();
         runtime.reset();
+        targetFlywheelVel = Vel.getTestingFlywheelVelocity();
         while (opModeIsActive()) {
 
             //-----------------------------------initialization------------------------------------------
@@ -200,16 +201,16 @@ public class NathanOpMode extends LinearOpMode {
 
 
             if(gamepad2.bWasPressed()) {
-                maxAccel += 1;
-                maxDecel += 1;
-                maxRotDecel += 1;
-                maxRotAccel += 1;
+                maxAccel += stepSizes[stepIndex];
+                maxDecel += stepSizes[stepIndex];
+                maxRotDecel += stepSizes[stepIndex];
+                maxRotAccel += stepSizes[stepIndex];
             }
             if(gamepad2.xWasPressed()) {
-                maxAccel -= 1;
-                maxDecel -= 1;
-                maxRotDecel -= 1;
-                maxRotAccel -= 1;
+                maxAccel -= stepSizes[stepIndex];
+                maxDecel -= stepSizes[stepIndex];
+                maxRotDecel -= stepSizes[stepIndex];
+                maxRotAccel -= stepSizes[stepIndex];
             }
             if(maxAccel <= 0) {
                 maxAccel += 1;
@@ -259,20 +260,19 @@ public class NathanOpMode extends LinearOpMode {
             lastC = gamepad1.dpad_right;
 
             if (angleSnapping) {
-                if (Math.abs(0 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(0 - Degrees) <= 0.5) {
-                    yaw = 0 - Degrees;
+                if (Math.abs(0 - Degrees) <= 10 && Math.abs(rotCheck) < 0.05 && Math.abs(0 - Degrees) <= 1.5) {
+                    yaw = (0 - Degrees) * 0.1;
                 }
-                else if (Math.abs(90 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(90 - Degrees) <= 0.5) {
-                    yaw = 90 - Degrees;
+                else if (Math.abs(90 - Degrees) <= 10 && Math.abs(rotCheck) < 0.05 && Math.abs(90 - Degrees) <= 1.5) {
+                    yaw = (90 - Degrees) * 0.1;
                 }
-                else if (Math.abs(-90 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(-90 - Degrees) <= 0.5) {
-                    yaw = -90 - Degrees;
+                else if (Math.abs(-90 - Degrees) <= 10 && Math.abs(rotCheck) < 0.05 && Math.abs(-90 - Degrees) <= 1.5) {
+                    yaw = (-90 - Degrees) * 0.1;
                 }
-                else if (Math.abs(180 - Degrees) <= 5 && Math.abs(rotCheck) < 0.05 && Math.abs(180 - Degrees) <= 0.5) {
-                    yaw = 180 - Degrees;
+                else if (Math.abs(180 - Degrees) <= 10 && Math.abs(rotCheck) < 0.05 && Math.abs(180 - Degrees) <= 1.5) {
+                    yaw = (180 - Degrees) * 0.1;
                 }
-                else
-                {
+                else {
                     yaw = slewLimit(turn, yaw, Swerve.getRotAcceleration(), Swerve.getRotDeceleration(), dt);
                 }
             telemetry.addLine("Angle snapping: On");
@@ -319,7 +319,6 @@ public class NathanOpMode extends LinearOpMode {
             //-----------------------------------Shooting---------------------------------------
 
 
-            targetFlywheelVel = Vel.getTestingFlywheelVelocity();
             if (gamepad1.rightBumperWasPressed()) {
                 targetFlywheelVel += 10;
             }
@@ -370,7 +369,6 @@ public class NathanOpMode extends LinearOpMode {
             if (intakeIsOn && !intakeIsReverse) {
                 intake.setPower(1);
             }
-            //If our intake is on then the power is one
             else if (intakeIsReverse) {
                 intake.setPower(-1);
             }
@@ -392,6 +390,12 @@ public class NathanOpMode extends LinearOpMode {
 
 
             //---------------------telemetry--------------------
+            telemetry.addData("Testing Velocity", testingVel);
+            telemetry.addData("PID Values","Proportion: %.5f, Feed-Forward: %.5f", LaunchPID.getkP(), LaunchPID.getkF());
+            telemetry.addData("Swerve Drive Settings", "Max Acceleration: %.3f, Max Deceleration: %.3f", Swerve.getAcceleration(), Swerve.getDeceleration());
+            telemetry.addData("Swerve Rotation Settings", "Max Rotation Acceleration: %.3f, Max Rotation Deceleration %.3f", Swerve.getRotAcceleration(), Swerve.getRotDeceleration());
+            telemetry.addData("step size: ", stepSizes[stepIndex]);
+            telemetry.addLine("---------------------");
             telemetry.addData("Current rotation: ", Degrees);
             telemetry.addData("Target flywheel velocity: ", targetFlywheelVel);
             telemetry.addData("Current flywheel velocity: ", flywheelVel);
